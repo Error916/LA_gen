@@ -1,7 +1,6 @@
 #ifndef LA_H_
 #define LA_H_
 
-#include <stdlib.h>
 #include <math.h>
 
 #ifndef LADEF

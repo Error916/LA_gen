@@ -544,7 +544,6 @@ int main(int argc, char **argv){
 		fprintf(stream, "#ifndef LA_H_\n");
 		fprintf(stream, "#define LA_H_\n");
 		fprintf(stream, "\n");
-		fprintf(stream, "#include <stdlib.h>\n");
 		fprintf(stream, "#include <math.h>\n");
 		fprintf(stream, "\n");
 		fprintf(stream, "#ifndef LADEF\n");
