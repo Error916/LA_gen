@@ -52,6 +52,9 @@ typedef enum {
 	FUN_POW,
 	FUN_SIN,
 	FUN_COS,
+	FUN_MIN,
+	FUN_MAX,
+	FUN_LERP,
 	COUNT_FUN_DEFS,
 } Fun_Def_Type;
 
@@ -69,7 +72,7 @@ static Op_Def op_defs[COUNT_OP_DEFS] = {
 	[OP_DEF_DIV] = {.suffix = "div", .op = "/="},
 };
 
-static_assert(COUNT_FUN_DEFS == 4, "More functions are been introduced please update the array below");
+static_assert(COUNT_FUN_DEFS == 7, "More functions are been introduced please update the array below");
 static_assert(COUNT_TYPE_DEFS == 4, "More types are been introduced please update the array below");
 static Fun_Def fun_defs[COUNT_FUN_DEFS] = {
 	[FUN_SQRT] = {
@@ -104,6 +107,31 @@ static Fun_Def fun_defs[COUNT_FUN_DEFS] = {
 		},
 		.arity = 1,
 	},
+	[FUN_MIN] = {
+		.suffix = "min",
+		.name_for_type = {
+			[TYPE_DEF_FLOAT] = "fminf",
+			[TYPE_DEF_DOUBLE] = "fmin",
+		},
+		.arity = 2,
+	},
+	[FUN_MAX] = {
+		.suffix = "max",
+		.name_for_type = {
+			[TYPE_DEF_FLOAT] = "fmaxf",
+			[TYPE_DEF_DOUBLE] = "fmax",
+		},
+		.arity = 2,
+	},
+	[FUN_LERP] = {
+		.suffix = "lerp",
+		.name_for_type = {
+			[TYPE_DEF_FLOAT] = "lerpf",
+			[TYPE_DEF_DOUBLE] = "lerp",
+		},
+		.arity = 3,
+	},
+
 };
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -247,14 +275,29 @@ void gen_vector_fun_impl(FILE *stream, size_t n, Type_Def_Type type, Fun_Def_Typ
 		fprintf(stream, ");\n");
 		fprintf(stream, "\treturn %s0;\n", arg_prefix);
 		fprintf(stream, "}\n");
+		fprintf(stream, "\n"); // neded for allignment
 	}
 }
 
-// TODO: lerp operation for vectors
+void gen_lerp_sig(FILE *stream, const char* name, const char *type){
+	fprintf(stream, "%s %s(%s a, %s b, %s t)", type, name, type, type, type);
+}
+
+void gen_lerp_decl(FILE *stream, const char* name, const char *type){
+	gen_lerp_sig(stream, name, type);
+	fprintf(stream, ";\n");
+}
+
+void gen_lerp_impl(FILE *stream, const char* name, const char *type){
+	gen_lerp_sig(stream, name, type);
+	fprintf(stream, "\n{\n");
+	fprintf(stream, "\treturn a + (b - a) * t;\n");
+	fprintf(stream, "}\n");
+
+}
+
 // TODO: len operation for vectors
 // TODO: sqrlen operation for vectors
-// TODO: min operation for vectors
-// TODO: max operation for vectors
 // TODO: matrices
 // TODO: macro blocks to disable size, types, etc
 
@@ -273,6 +316,9 @@ int main(int argc, char **argv){
 	fprintf(stream, "#include <math.h>\n");
 	fprintf(stream, "\n");
 
+	gen_lerp_decl(stream, "lerpf", "float");
+	gen_lerp_decl(stream, "lerp", "double");
+	fprintf(stream, "\n");
 	for(size_t n = 2; n <= 4; ++n){
 		for(Type_Def_Type type = 0; type < COUNT_TYPE_DEFS; ++type){
 			gen_vector_def(stream, n, type_defs[type]);
@@ -295,15 +341,22 @@ int main(int argc, char **argv){
 	fprintf(stream, "#ifdef LA_IMPLEMENTATION\n");
 	fprintf(stream, "\n");
 
+	gen_lerp_impl(stream, "lerpf", "float");
+	fprintf(stream, "\n");
+	gen_lerp_impl(stream, "lerp", "double");
+	fprintf(stream, "\n");
 	for(size_t n = 2; n <= 4; ++n){
 		for(Type_Def_Type type = 0; type < COUNT_TYPE_DEFS; ++type){
 			for(Op_Def_Type op = 0; op < COUNT_OP_DEFS; ++op){
 				gen_vector_op_impl(stream, n, type_defs[type], op_defs[op]);
+				fprintf(stream, "\n");
 			}
 			gen_vector_ctor_impl(stream, n, type_defs[type]);
+			fprintf(stream, "\n");
 			gen_vector_scalar_ctor_impl(stream, n, type_defs[type]);
+			fprintf(stream, "\n");
 			for(Fun_Def_Type fun = 0; fun < COUNT_FUN_DEFS; ++fun){
-				gen_vector_fun_impl(stream, n, type, fun);
+				gen_vector_fun_impl(stream, n, type, fun); //put automaticly \n
 			}
 		}
 	}
